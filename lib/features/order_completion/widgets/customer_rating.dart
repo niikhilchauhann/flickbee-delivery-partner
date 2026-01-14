@@ -3,25 +3,15 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/global_widgets/custom_icon_widget.dart';
 
-/// Customer rating section for delivery experience feedback
-class CustomerRatingWidget extends StatefulWidget {
+class CustomerRatingWidget extends StatelessWidget {
   final Function(int rating, String feedback) onSubmitRating;
 
-  const CustomerRatingWidget({super.key, required this.onSubmitRating});
+  CustomerRatingWidget({super.key, required this.onSubmitRating});
 
-  @override
-  State<CustomerRatingWidget> createState() => _CustomerRatingWidgetState();
-}
-
-class _CustomerRatingWidgetState extends State<CustomerRatingWidget> {
-  int _selectedRating = 0;
+  // int _selectedRating = 0;
   final TextEditingController _feedbackController = TextEditingController();
 
-  @override
-  void dispose() {
-    _feedbackController.dispose();
-    super.dispose();
-  }
+  final ValueNotifier<int> _selectedRating = ValueNotifier(0);
 
   @override
   Widget build(BuildContext context) {
@@ -62,30 +52,31 @@ class _CustomerRatingWidgetState extends State<CustomerRatingWidget> {
             ),
           ),
           SizedBox(height: 3.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              final starIndex = index + 1;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedRating = starIndex;
-                  });
-                },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 1.w),
-                  child: CustomIconWidget(
-                    iconName: _selectedRating >= starIndex
-                        ? 'star'
-                        : 'star_border',
-                    color: _selectedRating >= starIndex
-                        ? const Color(0xFFFBBF24)
-                        : theme.colorScheme.outline,
-                    size: 10.w,
+          ValueListenableBuilder(
+            valueListenable: _selectedRating,
+            builder: (context, value, child) => Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                final starIndex = index + 1;
+                return GestureDetector(
+                  onTap: () {
+                    _selectedRating.value = starIndex;
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 1.w),
+                    child: CustomIconWidget(
+                      iconName: value >= starIndex
+                          ? 'star'
+                          : 'star_border',
+                      color: value >= starIndex
+                          ? const Color(0xFFFBBF24)
+                          : theme.colorScheme.outline,
+                      size: 10.w,
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
           SizedBox(height: 3.h),
           Text(
@@ -125,10 +116,10 @@ class _CustomerRatingWidgetState extends State<CustomerRatingWidget> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _selectedRating > 0
+              onPressed: _selectedRating.value > 0
                   ? () {
-                      widget.onSubmitRating(
-                        _selectedRating,
+                      onSubmitRating(
+                        _selectedRating.value,
                         _feedbackController.text,
                       );
                       ScaffoldMessenger.of(context).showSnackBar(

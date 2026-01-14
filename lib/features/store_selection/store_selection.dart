@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/global_widgets/custom_icon_widget.dart';
+import '../auth/login_screen.dart';
 import '../order_details/order_pickup_model.dart';
 import '../splash/navigation_logic.dart';
 import 'widgets/store_card.dart';
 import 'widgets/store_details.dart';
+
 class StoreSelectionScreen extends StatelessWidget {
   StoreSelectionScreen({super.key});
 
@@ -20,7 +22,7 @@ class StoreSelectionScreen extends StatelessWidget {
   final List<StoreModel> allStores = _stores;
 
   static final List<StoreModel> _stores = [
-    StoreModel(
+    const StoreModel(
       id: 'store_001',
       name: 'FreshMart Downtown',
       address: '123 Main Street, Downtown District',
@@ -36,8 +38,7 @@ class StoreSelectionScreen extends StatelessWidget {
       parkingInstructions:
           'Use rear entrance parking lot. Show driver ID at gate.',
       driverRating: 4.7,
-      imageUrl:
-          'https://images.unsplash.com/photo-1471895131770-64cf5212f657',
+      imageUrl: 'https://images.unsplash.com/photo-1471895131770-64cf5212f657',
       semanticLabel: 'FreshMart store',
       recentlySelected: true,
     ),
@@ -113,10 +114,10 @@ class StoreSelectionScreen extends StatelessWidget {
             color: theme.colorScheme.onSurface,
             size: 24,
           ),
-          onPressed: () => Navigator.of(
+          onPressed: () => Navigator.push(
             context,
-            rootNavigator: true,
-          ).pushNamed('/login-screen'),
+            CupertinoPageRoute(builder: (context) => const LoginScreen()),
+          ),
         ),
         title: Text('Select Store', style: theme.appBarTheme.titleTextStyle),
         elevation: 0,
@@ -182,20 +183,17 @@ class StoreSelectionScreen extends StatelessWidget {
                             children: [
                               CustomIconWidget(
                                 iconName: 'store',
-                                color:
-                                    theme.colorScheme.onSurfaceVariant,
+                                color: theme.colorScheme.onSurfaceVariant,
                                 size: 64,
                               ),
                               SizedBox(height: 2.h),
-                              Text('No stores available'),
+                              const Text('No stores available'),
                               SizedBox(height: 3.h),
                               ElevatedButton.icon(
-                                onPressed: () =>
-                                    _contactSupport(context),
+                                onPressed: () => _contactSupport(context),
                                 icon: CustomIconWidget(
                                   iconName: 'support_agent',
-                                  color:
-                                      theme.colorScheme.onPrimary,
+                                  color: theme.colorScheme.onPrimary,
                                   size: 20,
                                 ),
                                 label: const Text('Contact Support'),
@@ -208,29 +206,23 @@ class StoreSelectionScreen extends StatelessWidget {
                       return RefreshIndicator(
                         onRefresh: _refresh,
                         child: ListView(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 4.w),
+                          padding: EdgeInsets.symmetric(horizontal: 4.w),
                           children: [
                             if (recent.isNotEmpty && query.isEmpty) ...[
                               SizedBox(height: 2.h),
                               Text(
                                 'Recently Selected',
-                                style: theme.textTheme.titleMedium
-                                    ?.copyWith(
-                                        fontWeight:
-                                            FontWeight.w600),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               SizedBox(height: 1.h),
                               ...recent.map(
                                 (s) => StoreCardWidget(
                                   store: s,
-                                  isSelected:
-                                      selectedStore.value?.id ==
-                                          s.id,
-                                  onTap: () =>
-                                      _showDetails(context, s),
-                                  onSelect: () =>
-                                      selectedStore.value = s,
+                                  isSelected: selectedStore.value?.id == s.id,
+                                  onTap: () => _showDetails(context, s),
+                                  onSelect: () => selectedStore.value = s,
                                 ),
                               ),
                               SizedBox(height: 2.h),
@@ -239,12 +231,9 @@ class StoreSelectionScreen extends StatelessWidget {
                             ...stores.map(
                               (s) => StoreCardWidget(
                                 store: s,
-                                isSelected:
-                                    selectedStore.value?.id == s.id,
-                                onTap: () =>
-                                    _showDetails(context, s),
-                                onSelect: () =>
-                                    selectedStore.value = s,
+                                isSelected: selectedStore.value?.id == s.id,
+                                onTap: () => _showDetails(context, s),
+                                onSelect: () => selectedStore.value = s,
                               ),
                             ),
                             SizedBox(height: 10.h),

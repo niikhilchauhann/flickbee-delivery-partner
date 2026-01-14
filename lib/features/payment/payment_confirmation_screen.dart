@@ -1,7 +1,10 @@
+import 'package:flickbee_delivery_partner/features/order_completion/order_completion.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/global_widgets/custom_icon_widget.dart';
+import '../auth/login_screen.dart';
 import '../navigation/order_model.dart';
 import './widgets/payment_method_card_widget.dart';
 import './widgets/photo_verification_widget.dart';
@@ -13,8 +16,9 @@ import 'widgets/signature_verification_widget.dart';
 class PaymentConfirmationScreen extends StatelessWidget {
   PaymentConfirmationScreen({super.key});
 
-  final ValueNotifier<PaymentWorkflowState> workflow =
-      ValueNotifier(const PaymentWorkflowState());
+  final ValueNotifier<PaymentWorkflowState> workflow = ValueNotifier(
+    const PaymentWorkflowState(),
+  );
 
   final OrderDetailsModel order = const OrderDetailsModel(
     orderId: 'ORD-2026-001234',
@@ -24,15 +28,13 @@ class PaymentConfirmationScreen extends StatelessWidget {
     paymentMode: 'Cash on Delivery',
     totalAmount: '127.50',
     estimatedTime: '—',
-    deliveryAddress:
-        '456 Oak Street, Apt 3B, Springfield, IL 62701',
+    deliveryAddress: '456 Oak Street, Apt 3B, Springfield, IL 62701',
     items: [],
   );
 
   bool _canComplete(OrderDetailsModel order, PaymentWorkflowState state) {
     if (order.paymentMode == 'Cash on Delivery') {
-      return state.receivedAmount >=
-              double.parse(order.totalAmount) &&
+      return state.receivedAmount >= double.parse(order.totalAmount) &&
           state.hasSignature &&
           state.deliveryPhoto != null &&
           state.checklistComplete;
@@ -42,10 +44,7 @@ class PaymentConfirmationScreen extends StatelessWidget {
         state.checklistComplete;
   }
 
-  Future<void> _completeDelivery(
-    BuildContext context,
-    bool canComplete,
-  ) async {
+  Future<void> _completeDelivery(BuildContext context, bool canComplete) async {
     if (!canComplete) return;
 
     workflow.value = workflow.value.copyWith(isProcessing: true);
@@ -78,14 +77,14 @@ class PaymentConfirmationScreen extends StatelessWidget {
     );
 
     await Future.delayed(const Duration(milliseconds: 500));
-
-    Navigator.of(
+    if (!context.mounted) return;
+    Navigator.pushAndRemoveUntil(
       context,
-      rootNavigator: true,
-    ).pushNamedAndRemoveUntil(
-      '/order-completion-screen',
-      (_) => false,
+      CupertinoPageRoute(builder: (context) => OrderCompletionScreen()),
+      (r) => false,
     );
+
+   
   }
 
   void _reportIssue(BuildContext context) {
@@ -93,9 +92,9 @@ class PaymentConfirmationScreen extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Report Issue'),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             _IssueOption(label: 'Payment Dispute'),
             _IssueOption(label: 'Customer Not Available'),
             _IssueOption(label: 'Incorrect Address'),
@@ -138,8 +137,7 @@ class PaymentConfirmationScreen extends StatelessWidget {
             color: theme.colorScheme.onSurface,
             size: 6.w,
           ),
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true).pop(),
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
         ),
         title: const Text('Payment Confirmation'),
         actions: [
@@ -165,8 +163,9 @@ class PaymentConfirmationScreen extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(3.w),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer
-                            .withValues(alpha: 0.2),
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.2,
+                        ),
                         borderRadius: BorderRadius.circular(2.w),
                       ),
                       child: Row(
@@ -180,11 +179,10 @@ class PaymentConfirmationScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               'Order #${order.orderId}',
-                              style: theme.textTheme.titleMedium
-                                  ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color:
-                                          theme.colorScheme.primary),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                              ),
                             ),
                           ),
                         ],
@@ -193,42 +191,43 @@ class PaymentConfirmationScreen extends StatelessWidget {
                     SizedBox(height: 3.h),
                     PaymentMethodCardWidget(
                       paymentMethod: order.paymentMode,
-                      orderTotal:
-                          double.parse(order.totalAmount),
+                      orderTotal: double.parse(order.totalAmount),
                       transactionId: null,
                       referenceNumber: null,
                     ),
                     SizedBox(height: 3.h),
-                    if (order.paymentMode ==
-                        'Cash on Delivery') ...[
+                    if (order.paymentMode == 'Cash on Delivery') ...[
                       CashCollectionWidget(
-                        orderTotal:
-                            double.parse(order.totalAmount),
+                        orderTotal: double.parse(order.totalAmount),
                         onAmountChanged: (amount) {
-                          workflow.value = workflow.value
-                              .copyWith(receivedAmount: amount);
+                          workflow.value = workflow.value.copyWith(
+                            receivedAmount: amount,
+                          );
                         },
                       ),
                       SizedBox(height: 3.h),
                     ],
                     SignatureCaptureWidget(
                       onSignatureChanged: (v) {
-                        workflow.value =
-                            workflow.value.copyWith(hasSignature: v);
+                        workflow.value = workflow.value.copyWith(
+                          hasSignature: v,
+                        );
                       },
                     ),
                     SizedBox(height: 3.h),
                     PhotoVerificationWidget(
                       onPhotoChanged: (photo) {
-                        workflow.value =
-                            workflow.value.copyWith(deliveryPhoto: photo);
+                        workflow.value = workflow.value.copyWith(
+                          deliveryPhoto: photo,
+                        );
                       },
                     ),
                     SizedBox(height: 3.h),
                     CompletionChecklistWidget(
                       onChecklistChanged: (v) {
-                        workflow.value =
-                            workflow.value.copyWith(checklistComplete: v);
+                        workflow.value = workflow.value.copyWith(
+                          checklistComplete: v,
+                        );
                       },
                     ),
                     SizedBox(height: 10.h),
@@ -259,14 +258,10 @@ class PaymentConfirmationScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: !state.isProcessing
-                            ? () => _completeDelivery(
-                                  context,
-                                  canComplete,
-                                )
+                            ? () => _completeDelivery(context, canComplete)
                             : null,
                         style: ElevatedButton.styleFrom(
-                          padding:
-                              EdgeInsets.symmetric(vertical: 2.h),
+                          padding: EdgeInsets.symmetric(vertical: 2.h),
                           backgroundColor: canComplete
                               ? const Color(0xFF059669)
                               : null,
@@ -277,31 +272,28 @@ class PaymentConfirmationScreen extends StatelessWidget {
                                 width: 5.w,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
                                     theme.colorScheme.onPrimary,
                                   ),
                                 ),
                               )
                             : Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   CustomIconWidget(
                                     iconName: 'check_circle',
                                     color: canComplete
                                         ? Colors.white
                                         : theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.38),
+                                              .withValues(alpha: 0.38),
                                     size: 6.w,
                                   ),
                                   SizedBox(width: 3.w),
                                   Text(
                                     'Complete Delivery',
-                                    style: theme.textTheme.titleLarge
-                                        ?.copyWith(
-                                            fontWeight:
-                                                FontWeight.w600),
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -317,6 +309,7 @@ class PaymentConfirmationScreen extends StatelessWidget {
     );
   }
 }
+
 class _IssueOption extends StatelessWidget {
   final String label;
 

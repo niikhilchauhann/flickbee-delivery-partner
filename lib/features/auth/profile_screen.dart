@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 import '../../core/exports.dart';
 import '../../core/global_widgets/custom_icon_widget.dart';
+import 'login_screen.dart';
 import 'widgets/account_setting.dart';
 import 'widgets/app_settings.dart';
 import 'widgets/availability_screen.dart';
@@ -34,7 +36,7 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -72,7 +74,7 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
                                       ? "You are now online and can receive orders"
                                       : "You are now offline",
                                 ),
-                                duration: Duration(seconds: 2),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                           },
@@ -88,7 +90,7 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
             Column(
               children: [
                 // Profile Header
-                ProfileHeaderWidget(),
+                const ProfileHeaderWidget(),
                 SizedBox(height: 3.h),
 
                 // Availability Section
@@ -96,15 +98,15 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
                 SizedBox(height: 3.h),
 
                 // Performance Metrics
-                PerformanceMetricsWidget(),
+                const PerformanceMetricsWidget(),
                 SizedBox(height: 3.h),
 
                 // Account Settings
-                AccountSettingsWidget(),
+                const AccountSettingsWidget(),
                 SizedBox(height: 3.h),
 
                 // Document Management
-                DocumentManagementWidget(),
+                const DocumentManagementWidget(),
                 SizedBox(height: 3.h),
 
                 // App Settings
@@ -112,7 +114,7 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
                 SizedBox(height: 3.h),
 
                 // Support Section
-                SupportSectionWidget(),
+                const SupportSectionWidget(),
                 SizedBox(height: 3.h),
 
                 // Logout Button
@@ -135,7 +137,7 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
                           size: 5.w,
                         ),
                         SizedBox(width: 2.w),
-                        Text("Logout"),
+                        const Text("Logout"),
                       ],
                     ),
                   ).px(16),
@@ -170,21 +172,19 @@ class ProfileAndAvailabilityScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(
-                context,
-                rootNavigator: true,
-              ).pushNamedAndRemoveUntil('/login-screen', (route) => false);
+              Navigator.pushAndRemoveUntil(context, CupertinoPageRoute(builder:(context)=>const LoginScreen()), (r)=>false);
+             
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorLight,
               foregroundColor: Colors.white,
             ),
-            child: Text("Logout"),
+            child: const Text("Logout"),
           ),
         ],
       ),

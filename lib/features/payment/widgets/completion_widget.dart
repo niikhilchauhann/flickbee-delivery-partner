@@ -3,27 +3,26 @@ import 'package:sizer/sizer.dart';
 
 import '../../../core/global_widgets/custom_icon_widget.dart';
 
-/// Order completion checklist widget
-/// Ensures all delivery requirements are met
-class CompletionChecklistWidget extends StatefulWidget {
-  final Function(bool) onChecklistChanged;
+class CompletionChecklistWidget extends StatelessWidget {
+  final ValueChanged<bool> onChecklistChanged;
 
-  const CompletionChecklistWidget({super.key, required this.onChecklistChanged});
+   CompletionChecklistWidget({
+    super.key,
+    required this.onChecklistChanged,
+  });
 
-  @override
-  State<CompletionChecklistWidget> createState() =>
-      _CompletionChecklistWidgetState();
-}
+  final ValueNotifier<bool> _paymentCollected = ValueNotifier(false);
 
-class _CompletionChecklistWidgetState extends State<CompletionChecklistWidget> {
-  bool _paymentCollected = false;
-  bool _itemsDelivered = false;
-  bool _customerSatisfied = false;
+  final ValueNotifier<bool> _itemsDelivered = ValueNotifier(false);
+
+  final ValueNotifier<bool> _customerSatisfied = ValueNotifier(false);
 
   void _updateChecklist() {
-    final allChecked =
-        _paymentCollected && _itemsDelivered && _customerSatisfied;
-    widget.onChecklistChanged(allChecked);
+    onChecklistChanged(
+      _paymentCollected.value &&
+          _itemsDelivered.value &&
+          _customerSatisfied.value,
+    );
   }
 
   @override
@@ -38,7 +37,6 @@ class _CompletionChecklistWidgetState extends State<CompletionChecklistWidget> {
         borderRadius: BorderRadius.circular(3.w),
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: 1,
         ),
       ),
       child: Column(
@@ -51,55 +49,93 @@ class _CompletionChecklistWidgetState extends State<CompletionChecklistWidget> {
             ),
           ),
           SizedBox(height: 2.h),
-          _buildChecklistItem(theme, 'Payment Collected', _paymentCollected, (
-            value,
-          ) {
-            setState(() {
-              _paymentCollected = value;
-              _updateChecklist();
-            });
-          }),
+
+          /// Payment Collected
+          ValueListenableBuilder<bool>(
+            valueListenable: _paymentCollected,
+            builder: (_, value, __) {
+              return _ChecklistRow(
+                theme: theme,
+                label: 'Payment Collected',
+                value: value,
+                onChanged: (v) {
+                  _paymentCollected.value = v;
+                  _updateChecklist();
+                },
+              );
+            },
+          ),
+
           SizedBox(height: 2.h),
-          _buildChecklistItem(theme, 'All Items Delivered', _itemsDelivered, (
-            value,
-          ) {
-            setState(() {
-              _itemsDelivered = value;
-              _updateChecklist();
-            });
-          }),
+
+          /// Items Delivered
+          ValueListenableBuilder<bool>(
+            valueListenable: _itemsDelivered,
+            builder: (_, value, __) {
+              return _ChecklistRow(
+                theme: theme,
+                label: 'All Items Delivered',
+                value: value,
+                onChanged: (v) {
+                  _itemsDelivered.value = v;
+                  _updateChecklist();
+                },
+              );
+            },
+          ),
+
           SizedBox(height: 2.h),
-          _buildChecklistItem(theme, 'Customer Satisfied', _customerSatisfied, (
-            value,
-          ) {
-            setState(() {
-              _customerSatisfied = value;
-              _updateChecklist();
-            });
-          }),
+
+          /// Customer Satisfied
+          ValueListenableBuilder<bool>(
+            valueListenable: _customerSatisfied,
+            builder: (_, value, __) {
+              return _ChecklistRow(
+                theme: theme,
+                label: 'Customer Satisfied',
+                value: value,
+                onChanged: (v) {
+                  _customerSatisfied.value = v;
+                  _updateChecklist();
+                },
+              );
+            },
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildChecklistItem(
-    ThemeData theme,
-    String label,
-    bool value,
-    Function(bool) onChanged,
-  ) {
+/// Internal UI row (not a helper method in widget tree)
+class _ChecklistRow extends StatelessWidget {
+  final ThemeData theme;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  static const Color _successColor = Color(0xFF059669);
+
+  const _ChecklistRow({
+    required this.theme,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(3.w),
       decoration: BoxDecoration(
         color: value
-            ? const Color(0xFF059669).withValues(alpha: 0.1)
+            ? _successColor.withValues(alpha: 0.1)
             : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(2.w),
         border: Border.all(
           color: value
-              ? const Color(0xFF059669)
+              ? _successColor
               : theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: 1,
         ),
       ),
       child: Row(
@@ -109,7 +145,7 @@ class _CompletionChecklistWidgetState extends State<CompletionChecklistWidget> {
             height: 6.w,
             child: Checkbox(
               value: value,
-              onChanged: (newValue) => onChanged(newValue ?? false),
+              onChanged: (v) => onChanged(v ?? false),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(1.w),
               ),
@@ -121,16 +157,14 @@ class _CompletionChecklistWidgetState extends State<CompletionChecklistWidget> {
               label,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w500,
-                color: value
-                    ? const Color(0xFF059669)
-                    : theme.colorScheme.onSurface,
+                color: value ? _successColor : theme.colorScheme.onSurface,
               ),
             ),
           ),
           if (value)
             CustomIconWidget(
               iconName: 'check_circle',
-              color: const Color(0xFF059669),
+              color: _successColor,
               size: 6.w,
             ),
         ],

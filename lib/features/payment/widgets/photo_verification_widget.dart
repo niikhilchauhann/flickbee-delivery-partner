@@ -8,70 +8,61 @@ import 'package:sizer/sizer.dart';
 import '../../../core/exports.dart';
 import '../../../core/global_widgets/custom_icon_widget.dart';
 
-
 /// Photo verification widget for delivery proof
 /// Captures package placement or customer receipt photo
-class PhotoVerificationWidget extends StatefulWidget {
-  final Function(XFile?) onPhotoChanged;
+class PhotoVerificationWidget extends StatelessWidget {
+  final ValueChanged<XFile?> onPhotoChanged;
 
-  const PhotoVerificationWidget({super.key, required this.onPhotoChanged});
-
-  @override
-  State<PhotoVerificationWidget> createState() =>
-      _PhotoVerificationWidgetState();
-}
-
-class _PhotoVerificationWidgetState extends State<PhotoVerificationWidget> {
-  CameraController? _cameraController;
-  List<CameraDescription> _cameras = [];
-  XFile? _capturedImage;
-  bool _isCameraInitialized = false;
-  final ImagePicker _imagePicker = ImagePicker();
-
-  @override
-  void initState() {
-    super.initState();
+  PhotoVerificationWidget({super.key, required this.onPhotoChanged}) {
     _initializeCamera();
   }
 
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    super.dispose();
-  }
+  final CameraController? _cameraController = null;
+  final ImagePicker _imagePicker = ImagePicker();
+
+  final ValueNotifier<CameraController?> _controller =
+      ValueNotifier<CameraController?>(null);
+
+  final ValueNotifier<bool> _isCameraInitialized = ValueNotifier<bool>(false);
+
+  final ValueNotifier<XFile?> _capturedImage = ValueNotifier<XFile?>(null);
 
   Future<void> _initializeCamera() async {
     try {
-      if (!await _requestCameraPermission()) {
-        return;
-      }
+      if (!await _requestCameraPermission()) return;
 
-      _cameras = await availableCameras();
-      if (_cameras.isEmpty) return;
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) return;
 
       final camera = kIsWeb
-          ? _cameras.firstWhere(
+          ? cameras.firstWhere(
               (c) => c.lensDirection == CameraLensDirection.front,
-              orElse: () => _cameras.first,
+              orElse: () => cameras.first,
             )
-          : _cameras.firstWhere(
+          : cameras.firstWhere(
               (c) => c.lensDirection == CameraLensDirection.back,
-              orElse: () => _cameras.first,
+              orElse: () => cameras.first,
             );
 
-      _cameraController = CameraController(
+      final controller = CameraController(
         camera,
         kIsWeb ? ResolutionPreset.medium : ResolutionPreset.high,
       );
 
-      await _cameraController!.initialize();
-      await _applySettings();
+      await controller.initialize();
 
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
+      try {
+        await controller.setFocusMode(FocusMode.auto);
+        if (!kIsWeb) {
+          await controller.setFlashMode(FlashMode.auto);
+        }
+      } catch (_) {}
+
+      _controller.value = controller;
+      _isCameraInitialized.value = true;
+
+      // Auto-dispose when GC runs
+      Finalizer((CameraController c) => c.dispose()).attach(this, controller);
     } catch (e) {
       debugPrint('Camera initialization error: $e');
     }
@@ -83,33 +74,14 @@ class _PhotoVerificationWidgetState extends State<PhotoVerificationWidget> {
     return status.isGranted;
   }
 
-  Future<void> _applySettings() async {
-    if (_cameraController == null) return;
-    try {
-      await _cameraController!.setFocusMode(FocusMode.auto);
-    } catch (e) {
-      debugPrint('Focus mode error: $e');
-    }
-    if (!kIsWeb) {
-      try {
-        await _cameraController!.setFlashMode(FlashMode.auto);
-      } catch (e) {
-        debugPrint('Flash mode error: $e');
-      }
-    }
-  }
-
   Future<void> _capturePhoto() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
-    }
+    final controller = _controller.value;
+    if (controller == null || !controller.value.isInitialized) return;
 
     try {
-      final XFile photo = await _cameraController!.takePicture();
-      setState(() {
-        _capturedImage = photo;
-      });
-      widget.onPhotoChanged(photo);
+      final photo = await controller.takePicture();
+      _capturedImage.value = photo;
+      onPhotoChanged(photo);
     } catch (e) {
       debugPrint('Photo capture error: $e');
     }
@@ -117,14 +89,10 @@ class _PhotoVerificationWidgetState extends State<PhotoVerificationWidget> {
 
   Future<void> _pickFromGallery() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-      );
+      final image = await _imagePicker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        setState(() {
-          _capturedImage = image;
-        });
-        widget.onPhotoChanged(image);
+        _capturedImage.value = image;
+        onPhotoChanged(image);
       }
     } catch (e) {
       debugPrint('Gallery pick error: $e');
@@ -132,145 +100,135 @@ class _PhotoVerificationWidgetState extends State<PhotoVerificationWidget> {
   }
 
   void _retakePhoto() {
-    setState(() {
-      _capturedImage = null;
-    });
-    widget.onPhotoChanged(null);
+    _capturedImage.value = null;
+    onPhotoChanged(null);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(4.w),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(3.w),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Delivery Proof Photo',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 2.h),
-          _capturedImage != null
-              ? _buildCapturedImage(theme)
-              : _buildCameraPreview(theme),
-          SizedBox(height: 2.h),
-          _buildActionButtons(theme),
-        ],
-      ),
-    );
-  }
+    return ValueListenableBuilder<XFile?>(
+      valueListenable: _capturedImage,
+      builder: (context, capturedImage, _) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: _isCameraInitialized,
+          builder: (context, isReady, __) {
+            final controller = _controller.value;
 
-  Widget _buildCameraPreview(ThemeData theme) {
-    if (!_isCameraInitialized || _cameraController == null) {
-      return Container(
-        width: double.infinity,
-        height: 30.h,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(2.w),
-        ),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      height: 30.h,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(2.w),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(2.w),
-        child: CameraPreview(_cameraController!),
-      ),
-    );
-  }
-
-  Widget _buildCapturedImage(ThemeData theme) {
-    return Container(
-      width: double.infinity,
-      height: 30.h,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(2.w),
-        border: Border.all(color: const Color(0xFF059669), width: 2),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(2.w),
-        child: kIsWeb
-            ? Image.network(_capturedImage!.path, fit: BoxFit.cover)
-            : CustomImageWidget(
-                imageUrl: _capturedImage!.path,
-                width: double.infinity,
-                height: 30.h,
-                fit: BoxFit.cover,
-                semanticLabel: 'Delivery proof photo showing package placement',
+            return Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(4.w),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(3.w),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                ),
               ),
-      ),
-    );
-  }
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Delivery Proof Photo',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
 
-  Widget _buildActionButtons(ThemeData theme) {
-    if (_capturedImage != null) {
-      return Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _retakePhoto,
-              icon: CustomIconWidget(
-                iconName: 'refresh',
-                color: theme.colorScheme.primary,
-                size: 5.w,
+                  /// PREVIEW / IMAGE (INLINE)
+                  Container(
+                    width: double.infinity,
+                    height: 30.h,
+                    decoration: BoxDecoration(
+                      color: capturedImage == null && !isReady
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : null,
+                      borderRadius: BorderRadius.circular(2.w),
+                      border: Border.all(
+                        color: capturedImage != null
+                            ? const Color(0xFF059669)
+                            : theme.colorScheme.outline.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(2.w),
+                      child: capturedImage != null
+                          ? (kIsWeb
+                                ? Image.network(
+                                    capturedImage.path,
+                                    fit: BoxFit.cover,
+                                  )
+                                : CustomImageWidget(
+                                    imageUrl: capturedImage.path,
+                                    width: double.infinity,
+                                    height: 30.h,
+                                    fit: BoxFit.cover,
+                                    semanticLabel:
+                                        'Delivery proof photo showing package placement',
+                                  ))
+                          : (!isReady || controller == null
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : CameraPreview(controller)),
+                    ),
+                  ),
+
+                  SizedBox(height: 2.h),
+
+                  /// ACTION BUTTONS (INLINE)
+                  capturedImage != null
+                      ? Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _retakePhoto,
+                                icon: CustomIconWidget(
+                                  iconName: 'refresh',
+                                  color: theme.colorScheme.primary,
+                                  size: 5.w,
+                                ),
+                                label: const Text('Retake'),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _capturePhoto,
+                                icon: CustomIconWidget(
+                                  iconName: 'camera_alt',
+                                  color: theme.colorScheme.onPrimary,
+                                  size: 5.w,
+                                ),
+                                label: const Text('Capture Photo'),
+                              ),
+                            ),
+                            SizedBox(width: 3.w),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _pickFromGallery,
+                                icon: CustomIconWidget(
+                                  iconName: 'photo_library',
+                                  color: theme.colorScheme.primary,
+                                  size: 5.w,
+                                ),
+                                label: const Text('Gallery'),
+                              ),
+                            ),
+                          ],
+                        ),
+                ],
               ),
-              label: Text('Retake'),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _capturePhoto,
-            icon: CustomIconWidget(
-              iconName: 'camera_alt',
-              color: theme.colorScheme.onPrimary,
-              size: 5.w,
-            ),
-            label: Text('Capture Photo'),
-          ),
-        ),
-        SizedBox(width: 3.w),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _pickFromGallery,
-            icon: CustomIconWidget(
-              iconName: 'photo_library',
-              color: theme.colorScheme.primary,
-              size: 5.w,
-            ),
-            label: Text('Gallery'),
-          ),
-        ),
-      ],
+            );
+          },
+        );
+      },
     );
   }
 }

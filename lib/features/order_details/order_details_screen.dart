@@ -1,3 +1,6 @@
+import 'package:flickbee_delivery_partner/features/navigation/navigation_tracking.dart';
+import 'package:flickbee_delivery_partner/features/payment/payment_confirmation_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../navigation/order_model.dart';
@@ -15,7 +18,7 @@ class OrderDetailsScreen extends StatelessWidget {
   final ValueNotifier<String> currentStatus = ValueNotifier('Accepted');
 
   final ValueNotifier<OrderDetailsModel> order = ValueNotifier(
-    OrderDetailsModel(
+    const OrderDetailsModel(
       orderId: 'ORD-2026-001234',
       customerName: 'Sarah Johnson',
       customerPhone: '+1-555-0123',
@@ -27,7 +30,7 @@ class OrderDetailsScreen extends StatelessWidget {
       orderDate: '2026-01-11 10:30 AM',
       specialInstructions:
           'Please ring the doorbell twice. Leave at front door if no answer.',
-      items: const [
+      items: [
         OrderItemModel(
           name: 'Organic Bananas',
           quantity: 2,
@@ -48,7 +51,7 @@ class OrderDetailsScreen extends StatelessWidget {
           isUnavailable: false,
         ),
       ],
-      store: const StorePickupModel(
+      store: StorePickupModel(
         name: 'Fresh Market Grocery',
         address: '123 Main Street, Springfield, IL 62701',
         pickupInstructions:
@@ -57,10 +60,7 @@ class OrderDetailsScreen extends StatelessWidget {
         longitude: -89.6501,
         distance: 2.3,
       ),
-      payment: const PaymentInfoModel(
-        method: 'Cash on Delivery',
-        totalAmount: 24.75,
-      ),
+      payment: PaymentInfoModel(method: 'Cash on Delivery', totalAmount: 24.75),
     ),
   );
 
@@ -133,7 +133,7 @@ class OrderDetailsScreen extends StatelessWidget {
                           order.value = orderData.copyWith(items: updatedItems);
                         },
                       ),
-                      StorePickupWidget(
+                      const StorePickupWidget(
                         store: StorePickupModel(
                           name: 'name',
                           address: 'address',
@@ -173,14 +173,20 @@ class OrderDetailsScreen extends StatelessWidget {
                                     currentStatus.value = 'Picking Up';
                                   } else if (status == 'Picking Up') {
                                     currentStatus.value = 'En Route';
-                                    Navigator.pushNamed(
+                                    Navigator.push(
                                       context,
-                                      '/navigation-tracking-screen',
+                                      CupertinoPageRoute(
+                                        builder: (context) =>
+                                            const NavigationTrackingScreen(),
+                                      ),
                                     );
                                   } else if (status == 'En Route') {
-                                    Navigator.pushNamed(
+                                    Navigator.push(
                                       context,
-                                      '/payment-confirmation-screen',
+                                      CupertinoPageRoute(
+                                        builder: (context) =>
+                                            PaymentConfirmationScreen(),
+                                      ),
                                     );
                                   }
                                 },
